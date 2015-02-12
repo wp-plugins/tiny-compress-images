@@ -3,7 +3,6 @@
 require_once(dirname(__FILE__) . "/TinyTestCase.php");
 
 class Tiny_Plugin_Test extends TinyTestCase {
-
     public function setUp() {
         parent::setUp();
         $this->subject = new Tiny_Plugin();
@@ -107,5 +106,4 @@ class Tiny_Plugin_Test extends TinyTestCase {
 
         $this->subject->compress_attachment(getTestMetadata(), 1);
     }
-
 }

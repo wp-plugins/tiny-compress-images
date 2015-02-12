@@ -25,7 +25,7 @@ Got questions or feedback? Let us know! Contact us at support@tinypng.com.
 2. Use `docker ps` to check which port to use to connect to WordPress.
 
 ### Running the unit tests
-1. Run `phpunit test/unit`.
+1. Run `phpunit --process-isolation test/unit`.
 
 ### Running the integration tests
 1. Start Selenium server: `java -jar selenium-server-standalone-2.44.0.jar`.

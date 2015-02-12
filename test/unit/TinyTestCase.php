@@ -1,18 +1,21 @@
 <?php
 
+require 'vendor/autoload.php';
 require(dirname(__FILE__) . '/../helpers/compress.php');
 require(dirname(__FILE__) . '/../helpers/wordpress.php');
-require(dirname(__FILE__) . '/../../src/class-tiny-exception.php');
-require(dirname(__FILE__) . '/../../src/class-tiny-compress.php');
-require(dirname(__FILE__) . '/../../src/class-tiny-compress-curl.php');
-require(dirname(__FILE__) . '/../../src/class-tiny-compress-fopen.php');
-require(dirname(__FILE__) . '/../../src/class-tiny-metadata.php');
-require(dirname(__FILE__) . '/../../src/class-tiny-wp-base.php');
-require(dirname(__FILE__) . '/../../src/class-tiny-settings.php');
-require(dirname(__FILE__) . '/../../src/class-tiny-plugin.php');
+
+function plugin_autoloader($class) {
+    $file = dirname(__FILE__) . '/../../src/class-' . str_replace('_', '-', strtolower($class)) . '.php';
+    if (file_exists($file)) {
+        include $file;
+    } else {
+        spl_autoload($class);
+    }
+}
+
+spl_autoload_register('plugin_autoloader');
 
 abstract class TinyTestCase extends PHPUnit_Framework_TestCase {
-
     protected $wp;
 
     protected function setUp() {

@@ -9,6 +9,7 @@
  * License: GPLv2 or later
  */
 
+require (dirname(__FILE__) . '/class-tiny-php.php');
 require (dirname(__FILE__) . '/class-tiny-wp-base.php');
 require (dirname(__FILE__) . '/class-tiny-exception.php');
 require (dirname(__FILE__) . '/class-tiny-compress.php');

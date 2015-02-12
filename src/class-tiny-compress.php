@@ -31,10 +31,10 @@ abstract class Tiny_Compress {
     }
 
     public static function get_compressor($api_key) {
-        if (extension_loaded('curl')) {
+        if (Tiny_PHP::is_curl_available()) {
             return new Tiny_Compress_Curl($api_key, self::get_config());
-        } elseif (ini_get('allow_url_fopen')) {
-            return new TinyTiny_Compress_Fopen($api_key, self::get_config());
+        } elseif (Tiny_PHP::is_fopen_available()) {
+            return new Tiny_Compress_Fopen($api_key, self::get_config());
         }
         throw new Tiny_Exception('No HTTP client is available (cURL or fopen)', 'NoHttpClient');
     }
