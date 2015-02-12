@@ -13,6 +13,14 @@ abstract class IntegrationTestCase extends PHPUnit_Framework_TestCase {
 
     protected function upload_image($path) {
         self::$driver->get(wordpress('/wp-admin/media-new.php?browser-uploader&flash=0'));
+        $links = self::$driver->findElements(WebDriverBy::xpath('//a[text()="browser uploader"]'));
+        if (count($links) > 0) {
+            $link = $links[0];
+            if ($link->isDisplayed()) {
+                $link->click();
+            }
+        }
+        self::$driver->wait(2)->until(WebDriverExpectedCondition::presenceOfElementLocated(WebDriverBy::name('async-upload')));
         $file_input = self::$driver->findElement(WebDriverBy::name('async-upload'));
         $file_input->setFileDetector(new LocalFileDetector());
         $file_input->sendKeys($path);

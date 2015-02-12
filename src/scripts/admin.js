@@ -12,14 +12,18 @@
       }
     );
   }
-  if (jQuery.fn.on) {
+  if (typeof jQuery.fn.on === "function") {
     jQuery('table').on('click', 'button.tinypng-compress', compress_image);
   } else {
     jQuery('button.tinypng-compress').live('click', compress_image);
   }
-  jQuery('button.tinypng-compress').attr('disabled', null)
+
+  if (typeof jQuery.fn.prop === "function") {
+    jQuery('button.tinypng-compress').prop('disabled', null)
+  } else {
+    jQuery('button.tinypng-compress').attr('disabled', null)
+  }
 
   jQuery('<option>').val('tinypng_bulk_compress').text(tinypngImageCompressL10n.bulkAction).appendTo('select[name="action"]');
   jQuery('<option>').val('tinypng_bulk_compress').text(tinypngImageCompressL10n.bulkAction).appendTo('select[name="action2"]');
 }).call();
-
