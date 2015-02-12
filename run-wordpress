@@ -25,7 +25,16 @@ run_wordpress_image() {
 }
 
 run_mysql_image() {
-  docker run --name mysql-wordpress -e MYSQL_ROOT_PASSWORD=v00rmedia -d mysql
+  if ! docker ps --filter status=running | grep -q mysql-wordpress
+  then
+    echo "Starting MySQL container..."
+    if docker ps -a | grep -q "mysql-wordpress"
+    then
+      docker start "mysql-wordpress"
+    else
+      docker run --name mysql-wordpress -e MYSQL_ROOT_PASSWORD=v00rmedia -d mysql
+    fi
+  fi
 }
 
 if [ $# -ne 1 ]
@@ -43,11 +52,6 @@ then
   exit 1
 fi
 
-if ! docker ps --filter status=running | grep -q mysql-wordpress
-then
-  echo "Starting MySQL container..."
-  run_mysql_image
-fi
-
+run_mysql_image
 build_wordpress_image
 run_wordpress_image
