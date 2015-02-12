@@ -6,7 +6,11 @@
  * Version: 0.1.0
  * Author: TinyPNG
  * Author URI: http://voormedia.com/about
- * License: GPL2
+ * License: GPLv2 or later
  */
 
-?>
+require( dirname( __FILE__ ) . '/Base.php' );
+require( dirname( __FILE__ ) . '/Settings.php' );
+require( dirname( __FILE__ ) . '/Plugin.php' );
+
+$tinyPngImageCompressionPlugin = new TinyPNGImageCompressionPlugin();

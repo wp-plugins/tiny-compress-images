@@ -1,0 +1,23 @@
+msgid "PNG and JPEG compression"
+msgstr "PNG- en JPEG-compressie"
+
+msgid "TinyPNG API key"
+msgstr "TinyPNG API key"
+
+msgid "Visit"
+msgstr "Bezoek de"
+
+msgid "TinyPNG Developer section"
+msgstr "TinyPNG Developer pagina"
+
+msgid "to gain an API key"
+msgstr "om een API key te krijgen"
+
+msgid "File compression"
+msgstr "Bestandscompressie"
+
+msgid "You can choose to compress different image sizes created by WordPress here"
+msgstr "Je kunt hier kiezen welke afmetingen je wilt comprimeren van de afbeeldingen"
+
+msgid "Remember each additional image size will affect your TinyPNG monthly usage"
+msgstr "Elke afmetingen zal apart worden gecomprimeerd en telt mee voor je verbruik"

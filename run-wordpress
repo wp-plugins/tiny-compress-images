@@ -21,7 +21,7 @@ run_wordpress_image() {
     docker rm "wordpress$version"
   fi
 
-  docker run --volume="$(pwd)":/var/www/html/wp-content/plugins/tinypng-image-compression --name "wordpress$version" --link mysql-wordpress:mysql -d -p "80$version":80 -e WORDPRESS_DB_NAME="wordpress_$version" "wordpress-$version"
+  docker run --volume="$(pwd)/src":/var/www/html/wp-content/plugins/tinypng-image-compression --name "wordpress$version" --link mysql-wordpress:mysql -d -p "80$version":80 -e WORDPRESS_DB_NAME="wordpress_$version" "wordpress-$version"
 }
 
 run_mysql_image() {
