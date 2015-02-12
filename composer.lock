@@ -4,7 +4,7 @@
         "Read more about it at http://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "6df0fa5ce935567ef1fcfe7d9aef7e02",
+    "hash": "5af0566aedacef6cbdee2ce7dea70d1f",
     "packages": [
         {
             "name": "facebook/webdriver",
@@ -55,12 +55,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/padraic/mockery.git",
-                "reference": "e9aa1b9d154e5ced63e844ddccbcabfe025231b3"
+                "reference": "f770ab0cf167cccf1a701f28411fbfc9971ff90e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/padraic/mockery/zipball/e9aa1b9d154e5ced63e844ddccbcabfe025231b3",
-                "reference": "e9aa1b9d154e5ced63e844ddccbcabfe025231b3",
+                "url": "https://api.github.com/repos/padraic/mockery/zipball/f770ab0cf167cccf1a701f28411fbfc9971ff90e",
+                "reference": "f770ab0cf167cccf1a701f28411fbfc9971ff90e",
                 "shasum": ""
             },
             "require": {
@@ -113,7 +113,7 @@
                 "test double",
                 "testing"
             ],
-            "time": "2015-02-10 19:41:43"
+            "time": "2015-02-11 12:43:02"
         }
     ],
     "aliases": [],

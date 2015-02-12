@@ -158,10 +158,10 @@ class Tiny_Plugin extends Tiny_WP_Base {
 
             $tiny_metadata = new Tiny_Metadata($id);
             $missing = $tiny_metadata->get_missing_sizes($sizes);
+            $total = count($sizes);
+            $success = $total - count($missing);
 
             if (count($missing) > 0) {
-                $total = count($sizes);
-                $success = $total - count($missing);
                 printf(self::translate_escape('Compressed %d out of %d sizes'), $success, $total);
                 echo '<br/>';
                 if (($error = $tiny_metadata->get_latest_error())) {
@@ -172,6 +172,8 @@ class Tiny_Plugin extends Tiny_WP_Base {
                 echo '<div class="spinner"></div>';
             } else {
                 $details = $tiny_metadata->get_value();
+                printf(self::translate_escape('Compressed %d out of %d sizes'), $success, $total);
+                echo '<br/>';
                 echo self::translate_escape('Original size') . ': ' . size_format($details['input']['size']) . '<br/>';
                 echo self::translate_escape('Compressed size') . ': ' . size_format($details['output']['size']);
             }

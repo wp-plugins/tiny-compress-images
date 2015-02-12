@@ -97,11 +97,15 @@ function setup_wordpress_site($driver) {
 }
 
 function clear_uploads($driver) {
+    media_bulk_action($driver, 'delete');
+}
+
+function media_bulk_action($driver, $action) {
     $driver->get(wordpress('/wp-admin/upload.php?mode=list'));
     $checkboxes = $driver->findElements(WebDriverBy::cssSelector('th input[type="checkbox"]'));
     if (count($checkboxes) > 0) {
         $checkboxes[0]->click();
-        $driver->findElement(WebDriverBy::cssSelector('select[name="action"] option[value="delete"]'))->click();
+        $driver->findElement(WebDriverBy::cssSelector('select[name="action"] option[value="' . $action . '"]'))->click();
         $driver->findElement(WebDriverBy::cssSelector('div.actions input[value="Apply"]'))->click();
     }
 }

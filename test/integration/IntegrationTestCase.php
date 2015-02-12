@@ -30,4 +30,22 @@ abstract class IntegrationTestCase extends PHPUnit_Framework_TestCase {
         self::$driver->findElement(WebDriverBy::tagName('form'))->submit();
         return self::$driver->findElement(WebDriverBy::name('tinypng_api_key'));
     }
+
+    protected function enable_compression_sizes($sizes) {
+        self::$driver->get(wordpress('/wp-admin/options-media.php'));
+        $elements = self::$driver->findElements(WebDriverBy::xpath('//input[starts-with(@id, "tinypng_sizes_")]'));
+        foreach($elements as $element) {
+            $size = str_replace('tinypng_sizes_', '', $element->getAttribute('id'));
+            if (in_array($size, $sizes)) {
+                if (!$element->getAttribute('checked')) {
+                    $element->click();
+                }
+            } else {
+                if ($element->getAttribute('checked')) {
+                    $element->click();
+                }
+            }
+        }
+        self::$driver->findElement(WebDriverBy::tagName('form'))->submit();
+    }
 }
