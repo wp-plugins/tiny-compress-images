@@ -36,8 +36,7 @@ run_wordpress() {
   fi
 
   docker run --name "wordpress$version" \
-    --volume="$DIR/../src":/var/www/html/wp-content/plugins/tinypng-image-compression \
-    --volume="$DIR/../vendor":/usr/local/lib/php/vendor \
+    --volume="$DIR/../":/var/www/html/wp-content/plugins/tinypng-image-compression \
     --link mysql-wordpress:mysql \
     --link mock-tinypng-webservice:webservice \
     -d -p "80$version":80 -e WORDPRESS_DB_NAME="wordpress_$version" "wordpress-$version"
