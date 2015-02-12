@@ -22,7 +22,7 @@ class Tiny_Compress_Curl extends Tiny_Compress {
     protected function shrink_options($input) {
         return array(
               CURLOPT_URL => $this->config['api']['url'],
-              CURLOPT_USERPWD => 'api:' . $this->apiKey,
+              CURLOPT_USERPWD => 'api:' . $this->api_key,
               CURLOPT_POSTFIELDS => $input,
               CURLOPT_BINARYTRANSFER => true,
               CURLOPT_RETURNTRANSFER => true,

@@ -25,7 +25,7 @@ class Tiny_Compress_Fopen extends Tiny_Compress {
                 'method' => 'POST',
                 'header' => array(
                     'Content-type: image/png',
-                    'Authorization: Basic ' . base64_encode('api:' . $this->apiKey)
+                    'Authorization: Basic ' . base64_encode('api:' . $this->api_key)
                  ),
                 'content' => $input
             ),

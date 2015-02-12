@@ -40,7 +40,7 @@ abstract class Tiny_Compress {
     }
 
     protected function __construct($api_key, $config) {
-        $this->apiKey = $api_key;
+        $this->api_key = $api_key;
         $this->config = $config;
     }
 
