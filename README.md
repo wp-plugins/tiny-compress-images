@@ -31,6 +31,8 @@ Got questions or feedback? Let us know! Contact us at support@tinypng.com.
 1. Start Selenium server: `java -jar selenium-server-standalone-2.44.0.jar`.
 2. Run `bin/test-wordpress <version>`. E.g. `bin/test-wordpress 41`.
 
+Note that when testing a different WordPress version, `bin/run-wordpress <version>` has to be run first.
+
 ## License
 Copyright (C) 2015 Voormedia B.V.
 
