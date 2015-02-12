@@ -1,0 +1,41 @@
+#!/bin/bash
+
+display_usage() {
+  echo -e "Usage:\n\t$0 <version> \n\nExample:\n\t$0 41"
+}
+
+build_wordpress_image() {
+  docker build -t "wordpress-$version" - < "$dockerfile"
+}
+
+run_wordpress_image() {
+  docker run --volume="$(pwd)":/var/www/html/wp-content/plugins/tinypng-image-compression --name "wordpress$version" --link mysql-wordpress:mysql -d -p "80$version":80 -e WORDPRESS_DB_NAME="wordpress_$version" "wordpress-$version"
+}
+
+run_mysql_image() {
+  docker run --name mysql-wordpress -e MYSQL_ROOT_PASSWORD=v00rmedia -d mysql
+}
+
+if [ $# -ne 1 ]
+then
+  display_usage
+  exit 1
+fi
+
+version="$1"
+dockerfile="Dockerfile-wordpress-$version"
+
+if [ ! -e "$dockerfile" ]
+then
+  echo -e "No Dockerfile for version $version can be found."
+  exit 1
+fi
+
+if ! docker ps --filter status=running | grep -q mysql-wordpress
+then
+  echo "Starting MySQL container..."
+  run_mysql_image
+fi
+
+build_wordpress_image
+run_wordpress_image
