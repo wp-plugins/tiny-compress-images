@@ -36,12 +36,16 @@ function restore_wordpress() {
     restore_webservice_url();
 }
 
+function mysql_dump_file() {
+    return dirname(__FILE__) . '/../../tmp/mysqldump_' . getenv('WORDPRESS_DATABASE') . '.sql.gz';
+}
+
 function restore_wordpress_site() {
-    shell_exec('mysql -h mysql -u root -p' . getenv('MYSQL_ROOT_PASSWORD') . ' ' . getenv('WORDPRESS_DATABASE') . ' < /tmp/mysqldump_' . getenv('WORDPRESS_DATABASE') . '.sql');
+    shell_exec('gunzip -c < ' . mysql_dump_file() . ' | mysql -h ' . getenv('HOST_IP') . ' -u root -p' . getenv('MYSQL_ROOT_PASSWORD') . ' ' . getenv('WORDPRESS_DATABASE'));
 }
 
 function backup_wordpress_site() {
-    shell_exec('mysqldump -h mysql -u root -p' . getenv('MYSQL_ROOT_PASSWORD') . ' ' . getenv('WORDPRESS_DATABASE') . ' > /tmp/mysqldump_' . getenv('WORDPRESS_DATABASE') . '.sql');
+    shell_exec('mysqldump -h ' . getenv('HOST_IP') . ' -u root -p' . getenv('MYSQL_ROOT_PASSWORD') . ' ' . getenv('WORDPRESS_DATABASE') . ' | gzip -c > ' . mysql_dump_file());
 }
 
 function set_test_webservice_url() {
@@ -56,14 +60,14 @@ function restore_webservice_url() {
 }
 
 function set_siteurl($site_url) {
-    $db = new mysqli('mysql', 'root', getenv('MYSQL_ROOT_PASSWORD'), getenv('WORDPRESS_DATABASE'));
+    $db = new mysqli(getenv('HOST_IP'), 'root', getenv('MYSQL_ROOT_PASSWORD'), getenv('WORDPRESS_DATABASE'));
     $statement = $db->prepare("UPDATE wp_options SET option_value = ? WHERE option_name = 'home' OR option_name = 'siteurl'");
     $statement->bind_param('s', $site_url);
     $statement->execute();
 }
 
 function is_wordpress_setup() {
-    $db = new mysqli('mysql', 'root', getenv('MYSQL_ROOT_PASSWORD'));
+    $db = new mysqli(getenv('HOST_IP'), 'root', getenv('MYSQL_ROOT_PASSWORD'));
     if ($result = $db->query("SELECT * FROM information_schema.tables WHERE table_schema = '" . getenv('WORDPRESS_DATABASE') . "'")) {
         return $result->num_rows > 0;
     } else {
@@ -114,7 +118,7 @@ function login($driver) {
     $driver->get(wordpress('/wp-login.php'));
     $driver->findElement(WebDriverBy::tagName('body'))->click();
     $driver->findElement(WebDriverBy::name('log'))->clear()->click()->sendKeys('admin');
-    $driver->findElement(WebDriverBy::name('pwd'))->sendKeys('admin');
+    $driver->findElement(WebDriverBy::name('pwd'))->clear()->click()->sendKeys('admin');
     $driver->findElement(WebDriverBy::tagName('form'))->submit();
     if ($driver->findElement(WebDriverBy::tagName('h2'))->getText() == 'Dashboard') {
         print "Successfully logged into WordPress.\n";

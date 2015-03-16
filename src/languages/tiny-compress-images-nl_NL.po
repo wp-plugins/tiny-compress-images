@@ -1,14 +1,29 @@
 msgid "PNG and JPEG compression"
 msgstr "PNG- en JPEG-compressie"
 
-msgid "Visit %s to gain an API key"
+msgid "Multisite PNG and JPEG compression"
+msgstr "Multisite PNG- en JPEG-compressie"
+
+msgid "Visit %s to get an API key"
 msgstr "Bezoek de %s om een API-sleutel te krijgen"
+
+msgid "Visit %s to view your usage or upgrade your account"
+msgstr "Bezoek de %s om je verbruik te bekijken of je account aan te passen"
 
 msgid "TinyPNG Developer section"
 msgstr "TinyPNG Developer pagina"
 
+msgid "TinyPNG API key"
+msgstr "TinyPNG API-sleutel"
+
+msgid "Multisite API key"
+msgstr "Multisite API-sleutel"
+
 msgid "File compression"
 msgstr "Bestandscompressie"
+
+msgid "original"
+msgstr "origineel"
 
 msgid "You can choose to compress different image sizes created by WordPress here"
 msgstr "Je kunt hier kiezen welke afmetingen je wilt comprimeren van de afbeeldingen"
@@ -28,8 +43,8 @@ msgstr "Comprimeer alle ongecomprimeerde afmetingen"
 msgid "Compressed %d out of %d sizes"
 msgstr "%d van de %d afmetingen zijn gecomprimeerd"
 
-msgid "Original size"
-msgstr "Oorspronkelijke grootte"
+msgid "Total size"
+msgstr "Totale grootte"
 
 msgid "Compressed size"
 msgstr "Gecomprimeerde grootte"
@@ -39,6 +54,9 @@ msgstr "Laatste fout"
 
 msgid "Credentials are invalid"
 msgstr "Ongeldige API-sleutel"
+
+msgid "Your monthly limit has been exceeded"
+msgstr "Je maandelijks limiet is bereikt"
 
 msgid "File is empty"
 msgstr "Bestand is leeg"
@@ -72,3 +90,15 @@ msgstr "Kon JSON niet decoderen"
 
 msgid "Could not compress, enable cURL for detailed error"
 msgstr "Kon niet comprimeren, schakel cURL in voor een preciezere foutmelding"
+
+msgid "You don't have permission to work with uploaded files"
+msgstr "Je hebt niet de permissies om met geüploade bestanden te werken"
+
+msgid "Not a valid media file"
+msgstr "Geen geldig media-bestand"
+
+msgid "Could not find metadata of media file"
+msgstr "Kon de metadata niet vinden van het bestand"
+
+msgid "The API key has been configured in %s"
+msgstr "De API-sleutel is geconfigureerd in %s"
