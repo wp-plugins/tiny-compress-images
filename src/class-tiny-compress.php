@@ -20,35 +20,44 @@
 
 abstract class Tiny_Compress {
     protected $api_key;
-    protected $config;
+    protected $after_compress_callback;
 
     public static function get_ca_file() {
         return dirname(__FILE__) . '/cacert.pem';
     }
 
-    public static function get_config() {
-        return parse_ini_file(dirname(__FILE__) . '/config/tinypng-api.ini', true);
-    }
-
-    public static function get_compressor($api_key) {
+    public static function get_compressor($api_key, $after_compress_callback=null) {
         if (Tiny_PHP::is_curl_available()) {
-            return new Tiny_Compress_Curl($api_key, self::get_config());
+            return new Tiny_Compress_Curl($api_key, $after_compress_callback);
         } elseif (Tiny_PHP::is_fopen_available()) {
-            return new Tiny_Compress_Fopen($api_key, self::get_config());
+            return new Tiny_Compress_Fopen($api_key, $after_compress_callback);
         }
         throw new Tiny_Exception('No HTTP client is available (cURL or fopen)', 'NoHttpClient');
     }
 
-    protected function __construct($api_key, $config) {
+    protected function __construct($api_key, $after_compress_callback) {
         $this->api_key = $api_key;
-        $this->config = $config;
+        $this->after_compress_callback = $after_compress_callback;
     }
 
     abstract protected function shrink($input);
     abstract protected function output($url);
 
+    public function get_status() {
+        list($details, $headers) = $this->shrink(null);
+
+        $this->call_after_compress_callback($details, $headers);
+        if ($details["error"] == 'InputMissing' || $details["error"] == 'TooManyRequests') {
+            return Tiny_Compressor_Status::Green;
+        } else {
+            return Tiny_Compressor_Status::Red;
+        }
+    }
+
     public function compress($input) {
-        list($details, $outputUrl) = $this->shrink($input);
+        list($details, $headers) = $this->shrink($input);
+        $this->call_after_compress_callback($details, $headers);
+        $outputUrl = $headers["Location"];
         if (isset($details['error']) && $details['error']) {
             throw new Tiny_Exception($details['message'], $details['error']);
         } else if ($outputUrl === null) {
@@ -70,16 +79,24 @@ abstract class Tiny_Compress {
         return $details;
     }
 
-    protected static function parse_location_header($headers) {
+    protected function call_after_compress_callback($details, $headers) {
+        if ($this->after_compress_callback) {
+            call_user_func($this->after_compress_callback, $details, $headers);
+        }
+    }
+
+    protected static function parse_headers($headers) {
         if (!is_array($headers)) {
             $headers = explode("\r\n", $headers);
         }
+        $res = array();
         foreach ($headers as $header) {
-            if (substr($header, 0, 10) === "Location: ") {
-                return substr($header, 10);
+            $split = explode(":", $header, 2);
+            if (count($split) === 2) {
+                $res[$split[0]] = trim($split[1]);
             }
         }
-        return null;
+        return $res;
     }
 
     protected static function decode($text) {
