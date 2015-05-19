@@ -31,6 +31,9 @@ class Tiny_Plugin extends Tiny_WP_Base {
     public function __construct() {
         parent::__construct();
         $this->settings = new Tiny_Settings();
+        if (is_admin()) {
+            add_action('admin_menu', $this->get_method('admin_menu'));
+        }
     }
 
     public function set_compressor($compressor) {
@@ -52,6 +55,14 @@ class Tiny_Plugin extends Tiny_WP_Base {
         add_action('admin_enqueue_scripts', $this->get_method('enqueue_scripts'));
     }
 
+    public function admin_menu() {
+        add_management_page(
+            self::translate('Compress JPEG & PNG Images'), self::translate('Compress All Images'),
+            'upload_files', 'tiny-bulk-compress', $this->get_method('bulk_compress_page')
+        );
+
+    }
+
     public function enqueue_scripts($hook) {
         wp_enqueue_style(self::NAME .'_admin', plugins_url('/styles/admin.css', __FILE__),
             array(), self::plugin_version());
@@ -60,72 +71,88 @@ class Tiny_Plugin extends Tiny_WP_Base {
         wp_register_script($handle, plugins_url('/scripts/admin.js', __FILE__),
             array(), self::plugin_version(), true);
 
-        wp_localize_script($handle, 'tinyCompressL10n', array(
-            'bulkAction' => self::translate('Compress all uncompressed sizes'),
+        // Wordpress < 3.3 does not handle multi dimensional arrays
+        wp_localize_script($handle, 'tinyCompress', array(
+            'nonce' => wp_create_nonce('tiny-compress'),
+            'wpVersion' => self::wp_version(),
+            'pluginVersion' => self::plugin_version(),
+            'L10nAllDone' => self::translate('All images are processed'),
+            'L10nBulkAction' => self::translate('Compress Images'),
+            'L10nCompressing' => self::translate('Compressing'),
+            'L10nCompressions' => self::translate('compressions'),
+            'L10nError' => self::translate('Error'),
+            'L10nInternalError' => self::translate('Internal error'),
+            'L10nOutOf' => self::translate('out of'),
+            'L10nWaiting' => self::translate('Waiting'),
         ));
         wp_enqueue_script($handle);
     }
 
-    public function compress_attachment($metadata, $attachment_id) {
+    private function compress($metadata, $attachment_id) {
         $mime_type = get_post_mime_type($attachment_id);
-        $tiny_metadata = new Tiny_Metadata($attachment_id);
+        $tiny_metadata = new Tiny_Metadata($attachment_id, $metadata);
 
         if ($this->settings->get_compressor() === null || strpos($mime_type, 'image/') !== 0) {
             return $metadata;
         }
 
-        $path_info = pathinfo($metadata['file']);
-        $upload_dir = wp_upload_dir();
-        $prefix = $upload_dir['basedir'] . '/' . $path_info['dirname'] . '/';
+        $success = 0;
+        $failed = 0;
 
-        $settings = $this->settings->get_sizes();
-
-        if ($settings[Tiny_Metadata::ORIGINAL]['tinify'] && !$tiny_metadata->is_compressed()) {
+        $compressor = $this->settings->get_compressor();
+        $sizes = $this->settings->get_tinify_sizes();
+        foreach ($tiny_metadata->get_missing_sizes($sizes) as $size) {
             try {
-                $response = $this->settings->get_compressor()->compress_file("$prefix${path_info['basename']}");
-                $tiny_metadata->add_response($response);
+                $response = $compressor->compress_file($tiny_metadata->get_filename($size));
+                $tiny_metadata->add_response($response, $size);
+                $success++;
             } catch (Tiny_Exception $e) {
-                $tiny_metadata->add_exception($e);
+                $tiny_metadata->add_exception($e, $size);
+                $failed++;
             }
         }
-
-        if (!isset($metadata['sizes']) || !is_array($metadata['sizes'])) {
-            $tiny_metadata->update();
-            return $metadata;
-        }
-
-        foreach ($metadata['sizes'] as $size => $info) {
-            if (isset($settings[$size]) && $settings[$size]['tinify'] && !$tiny_metadata->is_compressed($size)) {
-                try {
-                    $response = $this->settings->get_compressor()->compress_file("$prefix${info['file']}");
-                    $tiny_metadata->add_response($response, $size);
-                } catch (Tiny_Exception $e) {
-                    $tiny_metadata->add_exception($e, $size);
-                }
-            }
-        }
-
         $tiny_metadata->update();
+
+        return array($tiny_metadata, array('success' => $success, 'failed' => $failed));
+    }
+
+    public function compress_attachment($metadata, $attachment_id) {
+        $this->compress($metadata, $attachment_id);
         return $metadata;
     }
 
     public function compress_image() {
-        $id = $_POST['id'];
+        if (!$this->check_ajax_referer()) {
+            exit();
+        }
+        $json = !empty($_POST['json']) && $_POST['json'];
         if (!current_user_can('upload_files')) {
-            echo self::translate("You don't have permission to work with uploaded files") . '.';
+            $message = self::translate("You don't have permission to work with uploaded files") . '.';
+            echo $json ? json_encode(array('error' => $message)) : $message;
             exit();
         }
-        if (!$id) {
-            echo self::translate("Not a valid media file") . '.';
+        if (empty($_POST['id'])) {
+            $message = self::translate("Not a valid media file") . '.';
+            echo $json ? json_encode(array('error' => $message)) : $message;
             exit();
         }
+        $id = intval($_POST['id']);
         $metadata = wp_get_attachment_metadata($id);
-        if (!$metadata) {
-            echo self::translate("Could not find metadata of media file") . '.';
+        if (!is_array($metadata)) {
+            $message = self::translate("Could not find metadata of media file") . '.';
+            echo $json ? json_encode(array('error' => $message)) : $message;
+            exit;
         }
 
-        $this->compress_attachment($metadata, $id);
-        $this->render_media_column(self::MEDIA_COLUMN, $id);
+        list($tiny_metadata, $result) = $this->compress($metadata, $id);
+        if ($json) {
+            $result['message'] = $tiny_metadata->get_latest_error();
+            $result['status'] = $this->settings->get_status();
+            $result['thumbnail'] = $tiny_metadata->get_url('thumbnail');
+            echo json_encode($result);
+        } else {
+            echo $this->render_compress_details($tiny_metadata);
+        }
 
         exit();
     }
@@ -137,12 +164,13 @@ class Tiny_Plugin extends Tiny_WP_Base {
             return;
         }
 
-        foreach ($_REQUEST['media'] as $id) {
-            $metadata = wp_get_attachment_metadata($id);
-            if ($metadata) {
-                $this->compress_attachment($metadata, $id);
-            }
-        }
+        $ids = implode('-', array_map('intval', $_REQUEST['media']));
+        wp_redirect(add_query_arg(
+            '_wpnonce',
+            wp_create_nonce('tiny-bulk-compress'),
+            admin_url("tools.php?page=tiny-bulk-compress&ids=$ids")
+        ));
+        exit();
     }
 
     public function add_media_columns($columns) {
@@ -152,35 +180,83 @@ class Tiny_Plugin extends Tiny_WP_Base {
 
     public function render_media_column($column, $id) {
         if ($column === self::MEDIA_COLUMN) {
-            $wp_metadata = wp_get_attachment_metadata($id);
-            $wp_sizes = isset($wp_metadata['sizes']) ? array_keys($wp_metadata['sizes']) : array();
-            $wp_sizes[] = Tiny_Metadata::ORIGINAL;
+            $this->render_compress_details(new Tiny_Metadata($id));
+        }
+    }
 
-            $sizes = array_intersect($wp_sizes, $this->settings->get_tinify_sizes());
+    private function render_compress_details($tiny_metadata) {
+        $missing = $tiny_metadata->get_missing_sizes($this->settings->get_tinify_sizes());
+        $success = count($tiny_metadata->get_success_sizes());
+        $total = count($missing) + $success;
 
-            $tiny_metadata = new Tiny_Metadata($id);
-            $missing = $tiny_metadata->get_missing_sizes($sizes);
-            $total = count($sizes);
-            $success = $total - count($missing);
-
-            if (count($missing) > 0) {
-                printf(self::translate_escape('Compressed %d out of %d sizes'), $success, $total);
+        if (count($missing) > 0) {
+            printf(self::translate_escape('Compressed %d out of %d sizes'), $success, $total);
+            echo '<br/>';
+            if (($error = $tiny_metadata->get_latest_error())) {
+                echo '<span class="error">' . self::translate_escape('Latest error') . ': '. self::translate_escape($error) .'</span><br/>';
+            }
+            echo '<button type="button" class="tiny-compress" data-id="' . $tiny_metadata->get_id() . '">' .
+                self::translate_escape('Compress') . '</button>';
+            echo '<div class="spinner hidden"></div>';
+        } else {
+            printf(self::translate_escape('Compressed %d out of %d sizes'), $success, $total);
+            $savings = $tiny_metadata->get_savings();
+            if ($savings['count'] > 0) {
                 echo '<br/>';
-                if (($error = $tiny_metadata->get_latest_error())) {
-                    echo '<span class="error">' . self::translate_escape('Latest error') . ': '. self::translate_escape($error) .'<br/>';
-                }
-                echo '<button type="button" class="tiny-compress" data-id="' . $id . '">' .
-                    self::translate_escape('Compress') . '</button>';
-                echo '<div class="spinner"></div>';
-            } else {
-                printf(self::translate_escape('Compressed %d out of %d sizes'), $success, $total);
-                $savings = $tiny_metadata->get_savings();
-                if ($savings['count'] > 0) {
-                    echo '<br/>';
-                    echo self::translate_escape('Total size') . ': ' . size_format($savings['input']) . '<br/>';
-                    echo self::translate_escape('Compressed size') . ': ' . size_format($savings['output']);
-                }
+                echo self::translate_escape('Total size') . ': ' . size_format($savings['input']) . '<br/>';
+                echo self::translate_escape('Compressed size') . ': ' . size_format($savings['output']);
             }
         }
+    }
+
+    public function bulk_compress_page() {
+        global $wpdb;
+
+        echo '<div class="wrap" id="tiny-bulk-compress">';
+        echo '<h2>' . self::translate('Compress JPEG & PNG Images') . '</h2>';
+        if (empty($_POST['tiny-bulk-compress']) && empty($_REQUEST['ids'])) {
+            $result = $wpdb->get_results("SELECT COUNT(*) AS `count` FROM $wpdb->posts WHERE post_type = 'attachment' AND post_mime_type LIKE 'image/%' ORDER BY ID DESC", ARRAY_A);
+            $count = $result[0]['count'];
+
+            echo '<p>' . self::translate_escape("Use this tool to compress all images in your media library") . '. ';
+            echo self::translate_escape("Only images that have not been compressed will be compressed") . '.</p>';
+            echo '<p>' . sprintf(self::translate_escape("We have found %d images in your media library"), $count) . '. ';
+            echo self::translate_escape("To begin, just press the button below") . '.</p>';
+
+            echo '<form method="POST" action="?page=tiny-bulk-compress">';
+            echo '<input type="hidden" name="_wpnonce" value="' . wp_create_nonce('tiny-bulk-compress') . '">';
+            echo '<input type="hidden" name="tiny-bulk-compress" value="1">';
+            echo '<p><button class="button button-primary button-large" type="submit">' .
+                self::translate_escape('Compress All Images') . '</p>';
+            echo '</form>';
+        } else {
+            check_admin_referer('tiny-bulk-compress');
+
+            if (!empty($_REQUEST['ids'])) {
+                $ids = implode(',', array_map('intval', explode('-', $_REQUEST['ids'])));
+                $cond = "AND ID IN($ids)";
+            } else {
+                $cond = "";
+            }
+
+            // Get all ids and names of the images and not the whole objects which will only fill memory
+            $items = $wpdb->get_results("SELECT ID, post_title FROM $wpdb->posts WHERE post_type = 'attachment' AND post_mime_type LIKE 'image/%' $cond ORDER BY ID DESC", ARRAY_A);
+
+            echo '<p>';
+            echo self::translate_escape("Please be patient while the images are being compressed") . '. ';
+            echo self::translate_escape("This can take a while if you have many images") . '. ';
+            echo self::translate_escape("Do not navigate away from this page because it will stop the process") . '. ';
+            echo self::translate_escape("You will be notified via this page when the processing is done") . '.';
+            echo "</p>";
+
+            echo '<div id="tiny-status"><p>'. self::translate_escape('Compressions this month') . sprintf(' <span>%d</span></p></div>', $this->settings->get_status());
+            echo '<div id="tiny-progress"><p>'. self::translate_escape('Processing') . ' <span>0</span> ' . self::translate_escape('out of') . sprintf(' %d </p></div>', count($items));
+            echo '<div id="media-items">';
+            echo '</div>';
+
+            echo '<script type="text/javascript">jQuery(function() { tinyBulkCompress('. json_encode($items) . ')})</script>';
+        }
+
+        echo '</div>';
     }
 }

@@ -9,6 +9,10 @@ class SettingsIntegrationTest extends IntegrationTestCase {
         self::$driver->get(wordpress('/wp-admin/options-media.php'));
     }
 
+    public function tearDown() {
+        clear_settings();
+    }
+
     public function testTitlePresence()
     {
         $h3s = self::$driver->findElements(WebDriverBy::tagName('h3'));
@@ -24,6 +28,17 @@ class SettingsIntegrationTest extends IntegrationTestCase {
     public function testShouldPersistApiKey() {
         $element = $this->set_api_key('1234');
         $this->assertEquals('1234', $element->getAttribute('value'));
+    }
+
+    public function testShouldShowNoticeIfNoApiKeyIsSet() {
+        $element = self::$driver->findElement(WebDriverBy::cssSelector('.error a'));
+        $this->assertStringEndsWith('options-media.php#tiny-compress-images', $element->getAttribute('href'));
+    }
+
+    public function testShouldShowNoNoticeIfApiKeyIsSet() {
+        $this->set_api_key('1234');
+        $elements = self::$driver->findElements(WebDriverBy::cssSelector('.error a'));
+        $this->assertEquals(0, count($elements));
     }
 
     public function testDefaultSizesBeingCompressed() {
@@ -66,11 +81,12 @@ class SettingsIntegrationTest extends IntegrationTestCase {
     }
 
     public function testStatusPresenceOK() {
-        $this->set_api_key('STATUS123');
+        reset_webservice();
+        $this->set_api_key('PNG123');
         $elements = self::$driver->findElement(WebDriverBy::id('tiny-compress-status'))->findElements(WebDriverBy::tagName('p'));
         $statuses = array_map('innerText', $elements);
         $this->assertContains('API connection successful', $statuses);
-        $this->assertContains('You have made 6 compressions this month.', $statuses);
+        $this->assertContains('You have made 0 compressions this month.', $statuses);
     }
 
     public function testStatusPresenseFail() {

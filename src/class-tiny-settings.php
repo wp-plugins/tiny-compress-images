@@ -24,14 +24,23 @@ class Tiny_Settings extends Tiny_WP_Base {
     private $sizes;
     private $tinify_sizes;
     private $compressor;
+    private $notices;
+
+    public function __construct() {
+        parent::__construct();
+        $this->notices = new Tiny_Notices();
+    }
 
     public function admin_init() {
-        parent::admin_init();
-
+        if (current_user_can('manage_options') && !$this->get_api_key()) {
+            $link = sprintf('<a href="options-media.php#%s">%s</a>', self::NAME,
+                self::translate_escape('Please fill in an API key to start compressing images'));
+            $this->notices->show('setting', $link, 'error', false);
+        }
         try {
             $this->compressor = Tiny_Compress::get_compressor($this->get_api_key(), $this->get_method('after_compress_callback'));
         } catch (Tiny_Exception $e) {
-            $this->add_admin_notice('compressor_exception', self::translate_escape($e->getMessage()), true);
+            $this->notices->show('compressor_exception', self::translate_escape($e->getMessage()), 'error', false);
         }
 
         $section = self::get_prefixed_name('settings');
@@ -49,10 +58,10 @@ class Tiny_Settings extends Tiny_WP_Base {
         register_setting('media', $field);
         add_settings_field($field, self::translate('Connection status'), $this->get_method('render_pending_status'), 'media', $section);
 
-        add_action('wp_ajax_tiny_compress_status', $this->get_method('get_status'));
+        add_action('wp_ajax_tiny_compress_status', $this->get_method('connection_status'));
     }
 
-    public function get_status() {
+    public function connection_status() {
         $this->render_status();
         exit();
     }
@@ -63,6 +72,10 @@ class Tiny_Settings extends Tiny_WP_Base {
 
     public function set_compressor($compressor) {
         $this->compressor = $compressor;
+    }
+
+    public function get_status() {
+        return intval(get_option(self::get_prefixed_name('status')));
     }
 
     protected function get_api_key() {
@@ -136,6 +149,7 @@ class Tiny_Settings extends Tiny_WP_Base {
     }
 
     public function render_section() {
+        echo '<span id="' . self::NAME . '"></span>';
     }
 
     public function render_api_key() {
@@ -186,37 +200,49 @@ class Tiny_Settings extends Tiny_WP_Base {
     }
 
     public function after_compress_callback($details, $headers) {
-        if(isset($headers["Compression-Count"])) {
+        if (isset($headers['compression-count'])) {
+            $count = $headers['compression-count'];
             $field = self::get_prefixed_name('status');
-            update_option($field, $headers["Compression-Count"]);
+            update_option($field, $count);
 
             if (isset($details['error']) && $details['error'] == 'TooManyRequests') {
-                $link = '<a href="https://tinypng.com/developers" target="_blank">' . self::translate_escape('subscription') . '</a>';
-                $this->add_admin_notice('limit_reached', sprintf(self::translate_escape('you have reached your limit of %s compressions this month. Upgrade your %s if you like to compress more images') . '.', $headers["Compression-Count"], $link));
+                $link = '<a href="https://tinypng.com/developers" target="_blank">' . self::translate_escape('TinyPNG API account') . '</a>';
+                $this->notices->add('limit-reached',
+                    sprintf(self::translate_escape('You have reached your limit of %s compressions this month'), $count) . '. ' .
+                    sprintf(self::translate_escape('Upgrade your %s if you like to compress more images'), $link) . '.');
             } else {
-                $this->remove_admin_notice('limit_reached');
+                $this->notices->remove('limit-reached');
             }
         }
     }
 
     public function render_status() {
-        switch ($this->compressor->get_status()) {
-            case Tiny_Compressor_Status::Green:
-                echo '<p><img src="images/yes.png"> ' . self::translate_escape('API connection successful') . '</p>';
-                break;
-            case Tiny_Compressor_Status::Yellow:
-                echo '<p>' . self::translate_escape('API status could not be checked, enable cURL for more information') . '.</p>';
-                return;
-            case Tiny_Compressor_Status::Red:
+        $details = null;
+        try {
+            $status = $this->compressor->get_status($details);
+        } catch (Tiny_Exception $e) {
+            $status = false;
+            $details = array('message' => $e->getMessage());
+        }
+        if ($status) {
+            echo '<p><img src="images/yes.png"> ' . self::translate_escape('API connection successful') . '</p>';
+        } else {
+            if ($status === false) {
                 echo '<p><img src="images/no.png"> ' . self::translate_escape('API connection unsuccessful') . '</p>';
-                return;
+                if (isset($details['message'])) {
+                    echo '<p>'. self::translate_escape('Error') . ': ' . self::translate_escape($details['message']) . '</p>';
+                }
+            } else {
+                echo '<p>' . self::translate_escape('API status could not be checked, enable cURL for more information') . '.</p>';
+            }
+            return;
         }
 
         $compressions = self::get_compression_count();
         echo '<p>';
         // We currently have no way to check if a user is free or flexible.
         if ($compressions == 500) {
-            $link = '<a href="https://tinypng.com/developers" target="_blank">' . self::translate_escape('TinyPNG API subscription') . '</a>';
+            $link = '<a href="https://tinypng.com/developers" target="_blank">' . self::translate_escape('TinyPNG API account') . '</a>';
             printf(self::translate_escape('You have reached your limit of %s compressions this month') . '.', $compressions);
             echo '<br>';
             printf(self::translate_escape('If you need to compress more images you can change your %s') . '.', $link);
