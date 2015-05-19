@@ -43,21 +43,21 @@ abstract class Tiny_Compress {
     abstract protected function shrink($input);
     abstract protected function output($url);
 
-    public function get_status() {
+    public function get_status(&$details) {
         list($details, $headers) = $this->shrink(null);
 
         $this->call_after_compress_callback($details, $headers);
-        if ($details["error"] == 'InputMissing' || $details["error"] == 'TooManyRequests') {
-            return Tiny_Compressor_Status::Green;
+        if (!isset($details['error']) || $details["error"] == 'InputMissing' || $details["error"] == 'TooManyRequests') {
+            return true;
         } else {
-            return Tiny_Compressor_Status::Red;
+            return false;
         }
     }
 
     public function compress($input) {
         list($details, $headers) = $this->shrink($input);
         $this->call_after_compress_callback($details, $headers);
-        $outputUrl = $headers["Location"];
+        $outputUrl = isset($headers['location']) ? $headers['location'] : null;
         if (isset($details['error']) && $details['error']) {
             throw new Tiny_Exception($details['message'], $details['error']);
         } else if ($outputUrl === null) {
@@ -93,7 +93,7 @@ abstract class Tiny_Compress {
         foreach ($headers as $header) {
             $split = explode(":", $header, 2);
             if (count($split) === 2) {
-                $res[$split[0]] = trim($split[1]);
+                $res[strtolower($split[0])] = trim($split[1]);
             }
         }
         return $res;
