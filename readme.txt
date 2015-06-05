@@ -4,7 +4,7 @@ Donate link: https://tinypng.com/
 Tags: compress, optimize, shrink, improve, images, tinypng, tinyjpg, jpeg, jpg, png, lossy, jpegmini, crunch, minify, smush, save, bandwidth, website, speed, faster, performance, panda
 Requires at least: 3.0.6
 Tested up to: 4.2
-Stable tag: 1.3.0
+Stable tag: 1.3.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -15,6 +15,14 @@ Speed up your website. Optimize your JPEG and PNG images automatically with Tin
 Make your website faster by compressing your JPEG and PNG images.
 
 This plugin automatically optimizes your images by integrating with the popular image compression services TinyJPG and TinyPNG.
+
+= Features =
+
+* Compress all sizes.
+* Multisite support.
+* Bulk compress: compress your complete library with one click.
+* See your usage directly from the Media settings.
+* Detects automatically if an image should be recompressed.
 
 = How does it work? =
 
@@ -34,7 +42,7 @@ Got questions or feedback? Let us know! Contact us at support@tinypng.com or fin
 
 = Contributors =
 
-Want to contribute? Checkout our [GitHub page](https://github.com/TinyPNG/wordpress-plugin).
+Want to contribute? Checkout our [GitHub page](https://github.com/tinify/wordpress-plugin).
 
 == Installation ==
 
